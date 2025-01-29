@@ -1,29 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
+import { z } from "zod";
+import InputTextField from "./_features/common/forms/ui/input-text-field";
+import SubmitButton from "./_features/common/forms/ui/submit-button";
+import { storeTokensInCookies } from "./_features/sign-in/actions/store-tokens-in-cookies.action";
+import { SignInSuccessResponse } from "./_features/sign-in/definitions/sign-in-success-res.definition";
+import { signInFormZodSchema } from "./_features/sign-in/schemas/sign-in-form-zod.schema";
+
+// define form state type with its zod schema
+type SignInFormState = z.infer<typeof signInFormZodSchema>;
 
 export default function Page() {
-  interface FormData {
-    username: string;
-    password: string;
-  }
-  const [formData, setFormData] = useState<FormData>({
-    username: "",
-    password: "",
+  const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<SignInFormState>({
+    resolver: zodResolver(signInFormZodSchema),
   });
 
-  // Handle input change for any field
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value, // Dynamically update the field based on name attribute
-    }));
-  };
-
-  const onSubmit = async () => {
+  const onSubmit = async (formData: SignInFormState) => {
     try {
+      // req sign in
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/authentication/sign-in`,
         {
@@ -31,103 +36,82 @@ export default function Page() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(formData), // Send entire formData object
+          body: JSON.stringify(formData),
         }
       );
 
       if (!response.ok) {
-        // Only throw an error if the response status is not ok
         const errorData = await response.json();
         throw new Error(errorData?.message || "Invalid credentials");
       }
 
-      const res = await response.json();
-      // handle successful response (store token, redirect, etc.)
+      // toast
       toast.success("Successfully signed in");
-      console.log("Successfully signed in:", res);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("An unknown error occurred");
-      }
+      // store token in cookies
+      const okData: SignInSuccessResponse = await response.json();
+      await storeTokensInCookies(okData);
+      // kick
+      router.push("/teas");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "An unknown error occurred"
+      );
     }
   };
 
   return (
-    <>
-      {/* layout */}
-      <div className="min-h-dvh flex flex-col justify-center items-center p-6">
-        {/* title */}
-        <h2 className="mt-10 text-center text-2xl font-bold tracking-tight text-gray-900">
+    <div className="min-h-dvh flex justify-center items-center p-6">
+      <div className="w-full max-w-sm space-y-6">
+        <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900 text-center">
           Sign in to your account
-        </h2>
-
-        <div className="mt-10 w-full max-w-sm">
-          <form onSubmit={onSubmit} className="space-y-6">
-            {/* username */}
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-900"
-              >
-                Username
-              </label>
-              <div className="mt-2">
-                <input
-                  id="username"
-                  name="username"
-                  type="username"
-                  required
-                  autoComplete="username"
-                  value={formData.username} // Bind to formData
-                  onChange={handleInputChange} // Handle input changes
-                  className="w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 border border-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
-                />
-              </div>
-            </div>
-            {/* password */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-900"
-              >
-                Password
-              </label>
-              <div className="mt-2">
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  autoComplete="current-password"
-                  value={formData.password} // Bind to formData
-                  onChange={handleInputChange} // Handle input changes
-                  className="w-full rounded-md bg-white px-3 py-1.5 text-base text-gray-900 border border-gray-300 placeholder:text-gray-400 focus:outline-indigo-600"
-                />
-              </div>
-            </div>
-            {/* submit */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                onSubmit();
-              }}
-              type="button"
-              className="text-center w-full rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 focus-visible:outline-indigo-600"
-            >
-              Sign in
-            </button>
-          </form>
-          {/* register link */}
-          <p className="mt-10 text-center text-sm text-gray-500">
-            Not a member?{" "}
-            <span className="font-semibold text-indigo-600 hover:text-indigo-500">
-              Register here!
-            </span>
-          </p>
-        </div>
+        </h1>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* username */}
+          <InputTextField
+            id="username"
+            label="Username"
+            type="text"
+            placeholder="John"
+            autoComplete="username"
+            {...register("username")}
+            error={errors.username?.message}
+          />
+          {/* password */}
+          <InputTextField
+            id="password"
+            label="Password"
+            type="password"
+            placeholder="•••••••••"
+            autoComplete="current-password"
+            {...register("password")}
+            error={errors.password?.message}
+          />
+          {/* submit button */}
+          <SubmitButton
+            isSubmitting={isSubmitting}
+            text="Sign in"
+            loadingText="Signing in..."
+          />
+        </form>
+        {/* register link */}
+        <p className="text-sm font-light text-gray-500 text-center">
+          Not a member?{" "}
+          <Link href="#" className="link">
+            Register here!
+          </Link>
+        </p>
+        {/* demo creds */}
+        <p className="text-sm font-light text-gray-500">
+          Regular Username:{" "}
+          <span className="font-bold text-blue-600">user</span> <br />
+          Admin Username: <span className="font-bold text-red-600">
+            admin
+          </span>{" "}
+          <br />
+          Regular & Admin Password:{" "}
+          <span className="font-bold text-blue-600">Password@12345</span>
+        </p>
       </div>
-    </>
+    </div>
   );
 }
