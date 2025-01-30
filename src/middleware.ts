@@ -10,7 +10,7 @@ import { deleteTokensInCookies } from "./app/_features/sign-out/actions/delete-t
 // protected and public routes
 const protectedRegularRoutes = ["/teas"];
 const protectedAdminRoutes = ["/users"];
-const publicRoutes = ["/"];
+const publicRoutes = ["/", "/sign-in", "/sign-up"];
 
 export default async function middleware(req: NextRequest) {
   // current route is protected or public
@@ -19,18 +19,16 @@ export default async function middleware(req: NextRequest) {
   const isProtectedAdminRoutes = protectedAdminRoutes.includes(path);
   const isPublicRoute = publicRoutes.includes(path);
 
-  // get cookies
-  const cookieStore = await cookies();
-
   // get tokens from cookies
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get("accessToken")?.value;
   const refreshToken = cookieStore.get("refreshToken")?.value;
 
   // no refresh token? alr logged out, kick
   if (!refreshToken) {
     await deleteTokensInCookies();
-    // kick to login if not in login
-    if (path !== "/") {
+    // kick to login if in protected routes
+    if (isProtectedRegularRoutes || isProtectedAdminRoutes) {
       return NextResponse.redirect(new URL("/", req.nextUrl));
     }
     return NextResponse.next();
@@ -71,8 +69,8 @@ export default async function middleware(req: NextRequest) {
       );
       // fails to use refresh token means logged out
       await deleteTokensInCookies();
-      // kick to login if not in login
-      if (path !== "/") {
+      // kick to login if in protected route
+      if (isProtectedRegularRoutes || isProtectedAdminRoutes) {
         return NextResponse.redirect(new URL("/", req.nextUrl));
       }
       // call next
@@ -113,10 +111,12 @@ function kick(
   const decodedAccessToken: AccessTokenPayload = jwtDecode(accessToken);
   const decodedRefreshToken: RefreshTokenPayload = jwtDecode(refreshToken);
 
-  // invalid payload? kick to login
-  if (!decodedAccessToken.role || !decodedRefreshToken.refreshTokenId) {
-    if (path !== "/") {
-      return NextResponse.redirect(new URL("/", req.nextUrl));
+  // invalid payload? kick to login if in protected route
+  if (isProtectedRegularRoutes || isProtectedAdminRoutes) {
+    if (!decodedAccessToken.role || !decodedRefreshToken.refreshTokenId) {
+      if (path !== "/") {
+        return NextResponse.redirect(new URL("/", req.nextUrl));
+      }
     }
   }
 

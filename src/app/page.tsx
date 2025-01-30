@@ -1,117 +1,52 @@
-"use client";
-
-import { zodResolver } from "@hookform/resolvers/zod";
+import heroDesktop from "@public/hero-desktop.png";
+import heroMobile from "@public/hero-mobile.png";
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import toast from "react-hot-toast";
-import { z } from "zod";
-import InputTextField from "./_features/common/forms/ui/input-text-field";
-import SubmitButton from "./_features/common/forms/ui/submit-button";
-import { storeTokensInCookies } from "./_features/sign-in/actions/store-tokens-in-cookies.action";
-import { SignInSuccessResponse } from "./_features/sign-in/definitions/sign-in-success-res.definition";
-import { signInFormZodSchema } from "./_features/sign-in/schemas/sign-in-form-zod.schema";
 
-// define form state type with its zod schema
-type SignInFormState = z.infer<typeof signInFormZodSchema>;
-
-export default function Page() {
-  const router = useRouter();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<SignInFormState>({
-    resolver: zodResolver(signInFormZodSchema),
-  });
-
-  const onSubmit = async (formData: SignInFormState) => {
-    try {
-      // req sign in
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/v1/authentication/sign-in`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData?.message || "Invalid credentials");
-      }
-
-      // toast
-      toast.success("Successfully signed in");
-      // store token in cookies
-      const okData: SignInSuccessResponse = await response.json();
-      await storeTokensInCookies(okData);
-      // kick
-      router.push("/teas");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "An unknown error occurred"
-      );
-    }
-  };
-
+export default async function Page() {
+  // find many teas
   return (
-    <div className="min-h-dvh flex justify-center items-center p-6">
-      <div className="w-full max-w-sm space-y-6">
-        <h1 className="text-2xl font-bold leading-tight tracking-tight text-gray-900 text-center">
-          Sign in to your account
-        </h1>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* username */}
-          <InputTextField
-            id="username"
-            label="Username"
-            type="text"
-            placeholder="John"
-            autoComplete="username"
-            {...register("username")}
-            error={errors.username?.message}
-          />
-          {/* password */}
-          <InputTextField
-            id="password"
-            label="Password"
-            type="password"
-            placeholder="•••••••••"
-            autoComplete="current-password"
-            {...register("password")}
-            error={errors.password?.message}
-          />
-          {/* submit button */}
-          <SubmitButton
-            isSubmitting={isSubmitting}
-            text="Sign in"
-            loadingText="Signing in..."
-          />
-        </form>
-        {/* register link */}
-        <p className="text-sm font-light text-gray-500 text-center">
-          Not a member?{" "}
-          <Link href="#" className="link">
-            Register here!
-          </Link>
-        </p>
-        {/* demo creds */}
-        <p className="text-sm font-light text-gray-500">
-          Regular Username:{" "}
-          <span className="font-bold text-blue-600">user</span> <br />
-          Admin Username: <span className="font-bold text-red-600">
-            admin
-          </span>{" "}
-          <br />
-          Regular & Admin Password:{" "}
-          <span className="font-bold text-blue-600">Password@12345</span>
-        </p>
-      </div>
-    </div>
+    <>
+      {/* root page */}
+      <main className="min-h-dvh flex items-center justify-center bg-gradient-to-tr from-teal-50 to-blue-100">
+        {/* layout */}
+        <div className="grid md:grid-cols-2 items-center justify-items-center gap-6 container mx-auto p-5">
+          {/* text section */}
+          <div className="max-md:order-1 max-md:text-center">
+            {/* title */}
+            <h1 className="text-5xl font-semibold tracking-tight text-balance text-gray-900 sm:text-7xl">
+              Clifford William&apos;s Online Tea Shop Portfolio
+            </h1>
+            {/* sub */}
+            <p className="mt-8 text-lg font-medium text-pretty text-gray-500 sm:text-xl/8">
+              Discover a curated selection of fine teas. Sign in or register to
+              explore, purchase, and manage your collection.
+            </p>
+            {/* login & register button */}
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link href="/sign-in" className="btn-primary max-md:w-full">
+                Login here!
+              </Link>
+              <Link href="/sign-up" className="btn-secondary max-md:w-full">
+                Register here!
+              </Link>
+            </div>
+          </div>
+          {/* illustration */}
+          <div>
+            <Image
+              src={heroDesktop}
+              alt="Screenshots of the dashboard project showing desktop version"
+              className="hidden md:block"
+            />
+            <Image
+              src={heroMobile}
+              alt="Screenshot of the dashboard project showing mobile version"
+              className="block md:hidden"
+            />
+          </div>
+        </div>
+      </main>
+    </>
   );
 }

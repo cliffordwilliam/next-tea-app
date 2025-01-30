@@ -50,8 +50,6 @@ export default function LogoutButton({ refreshToken }: LogoutButtonProp) {
       );
       // kick anyways since refresh token alr not valid
       router.push("/");
-    } finally {
-      setIsLoading(false);
     }
   };
   return (
