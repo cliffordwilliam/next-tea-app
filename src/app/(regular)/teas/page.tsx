@@ -1,22 +1,15 @@
 import { fetchWithAuth } from "@/app/_features/common/utils/fetchWithAuth";
 import { formatPrice } from "@/app/_features/common/utils/formatPrice";
-import LogoutButton from "@/app/_features/sign-out/ui/logout-button";
 import { TeaResponse } from "@/app/_features/teas/definitions/get-all-teas-success-res.definition";
 import demoTea from "@public/demo-tea.png";
-import { cookies } from "next/headers";
 import Image from "next/image";
 
 export default async function Page() {
-  // get cookies
-  const cookieStore = await cookies();
-  const refreshToken = cookieStore.get("refreshToken")?.value;
   // get teas
   const response = await fetchWithAuth("/api/v1/teas");
-
   if (!response.ok) {
     return <h1>Failed to load teas</h1>;
   }
-
   const teas: TeaResponse = await response.json();
   console.log(teas);
   return (
@@ -38,7 +31,6 @@ export default async function Page() {
             </a>
           ))}
         </ul>
-        <LogoutButton refreshToken={refreshToken} />
       </div>
     </div>
   );

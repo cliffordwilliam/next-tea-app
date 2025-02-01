@@ -52,6 +52,7 @@ export default async function middleware(req: NextRequest) {
         throw new Error(errorData?.message || "Invalid credentials");
       }
       // store valid tokens in cookies
+      console.log("used refresh tokens from middleware");
       const okData: SignInSuccessResponse = await response.json();
       await storeTokensInCookies(okData);
       // route kick logic (auto calls next)

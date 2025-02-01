@@ -41,15 +41,14 @@ export async function fetchWithAuth(
         const errorData = await response.json();
         throw new Error(errorData?.message || "Invalid credentials");
       }
-
       // store valid tokens in cookies
+      console.log("used refresh tokens from fetch");
       const okData: SignInSuccessResponse = await response.json();
       await storeTokensInCookies(okData);
-
       // update token for request
       accessToken = okData.accessToken;
     } catch (error) {
-      console.error(
+      console.log(
         error instanceof Error ? error.message : "An unknown error occurred"
       );
       // fails to use refresh token means logged out
